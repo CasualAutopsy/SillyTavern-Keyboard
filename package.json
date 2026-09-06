@@ -1,0 +1,13 @@
+{
+  "name": "sillytavern-keyboard",
+  "version": "2.0.0",
+  "description": "Assign custom keyboard shortcuts (QRs, built-in actions) and disable default shortcuts.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "node ./esbuild.config.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,11 +1,7 @@
 /** @readonly */
+import { STContext as ctx } from '../external/st-context.js';
 
-import { SlashCommandClosure } from '../../../../slash-commands/SlashCommandClosure.js';
-import { SlashCommandParser } from '../../../../slash-commands/SlashCommandParser.js';
-import { SlashCommandScope } from '../../../../slash-commands/SlashCommandScope.js';
-import { isTrueBoolean } from '../../../../utils.js';
-import { quickReplyApi } from '../../../quick-reply/index.js';
-import { saveSettings } from '../index.js';
+import { saveSettings } from './settings.js';
 import { Callback } from './Callback.js';
 
 /** @enum {string} */
@@ -222,7 +218,7 @@ export class KeyCombo {
                             blank.textContent = '-- Select QR Set --';
                             set.append(blank);
                         }
-                        for (const s of quickReplyApi.listSets()) {
+                        for (const s of ctx.quickReplyApi.listSets()) {
                             const opt = document.createElement('option'); {
                                 opt.value = s;
                                 opt.textContent = s;
@@ -240,7 +236,7 @@ export class KeyCombo {
                             qr.append(blank);
                         }
                         if (set.value) {
-                            for (const s of quickReplyApi.listQuickReplies(set.value)) {
+                            for (const s of ctx.quickReplyApi.listQuickReplies(set.value)) {
                                 const opt = document.createElement('option'); {
                                     opt.value = s;
                                     opt.textContent = s;
@@ -254,7 +250,7 @@ export class KeyCombo {
                     const qr = document.createElement('select'); {
                         qr.addEventListener('change', ()=>{
                             this.scriptQr = qr.value;
-                            this.script = quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.message;
+                            this.script = ctx.quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.message;
                             saveSettings();
                         });
                         updateQrOptions();
@@ -265,7 +261,7 @@ export class KeyCombo {
                         edit.classList.add('menu_button');
                         edit.classList.add('fa-solid', 'fa-fw', 'fa-code');
                         edit.addEventListener('click', ()=>{
-                            quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.showEditor();
+                            ctx.quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.showEditor();
                         });
                         script.append(edit);
                     }
@@ -392,18 +388,18 @@ export class KeyCombo {
                 return true;
             }
             case COMBO_ACTION.SCRIPT: {
-                const msg = quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.message;
+                const msg = ctx.quickReplyApi.getQrByLabel(this.scriptSet, this.scriptQr)?.message;
                 if (msg) {
                     evt.preventDefault();
                     evt.stopImmediatePropagation();
                     evt.stopPropagation();
-                    const parser = new SlashCommandParser();
-                    const scope = new SlashCommandScope();
+                    const parser = new ctx.SlashCommandParser();
+                    const scope = new ctx.SlashCommandScope();
                     scope.letVariable('stop', 'false');
                     this.closure = parser.parse(msg);
                     this.closure.scope.parent = scope;
                     await this.closure.execute();
-                    return isTrueBoolean(this.closure.scope.getVariable('stop'));
+                    return ctx.isTrueBoolean(this.closure.scope.getVariable('stop'));
                 }
                 return false;
             }

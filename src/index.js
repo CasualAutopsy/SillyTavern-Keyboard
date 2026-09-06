@@ -1,38 +1,21 @@
-import { is_send_press, saveSettingsDebounced, sendTextareaMessage } from '../../../../script.js';
-import { extension_settings } from '../../../extensions.js';
-import { Popup, POPUP_TYPE } from '../../../popup.js';
-import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
-import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
-import { accountStorage } from '../../../util/AccountStorage.js';
-import { getSortableDelay } from '../../../utils.js';
-import { Callback } from './src/Callback.js';
-import { KeyCombo } from './src/KeyCombo.js';
+import { STContext as ctx } from './external/st-context.js';
 
-// load settings
-const settings = Object.assign({
-    keyComboList: [],
-}, extension_settings.keyboard);
-settings.keyComboList = settings.keyComboList.map(it=>KeyCombo.from(it));
+import { settings, saveSettings } from './core/settings.js';
+
+import { Callback } from './core/Callback.js';
+import { KeyCombo } from './core/KeyCombo.js';
+
 
 // restore combo list
 KeyCombo.list.push(...settings.keyComboList);
 
-// save settings
-export const saveSettings = ()=>{
-    settings.keyComboList = KeyCombo.list;
-    extension_settings.keyboard = settings;
-    saveSettingsDebounced();
-};
-
-
-
-
 const block = [];
+
 /**
  * @param {KeyboardEvent} evt
  */
 const handleShortcut = async(evt)=>{
-    if (Popup.util.isPopupOpen()) return;
+    if (ctx.Popup.util.isPopupOpen()) return;
     for (const combo of KeyCombo.list) {
         if (!combo.test(evt)) continue;
         console.log('[STKC]', `${combo}`, combo);
@@ -41,6 +24,7 @@ const handleShortcut = async(evt)=>{
         if (stop) break;
     }
 };
+
 /**
  * @param {KeyboardEvent} evt
  */
@@ -63,7 +47,7 @@ const init = async()=>{
         check: ()=>document.activeElement.id == 'send_textarea',
         callback: async(evt)=>{
             evt.preventDefault();
-            sendTextareaMessage();
+            ctx.sendTextareaMessage();
         },
     });
     Callback.add({ id: 'context_line',
@@ -99,10 +83,10 @@ const init = async()=>{
     });
     Callback.add({ id: 'regenerate',
         label: 'Regenerate last response',
-        check: ()=>!document.querySelector('#curEditTextarea') && !is_send_press,
+        check: ()=>!document.querySelector('#curEditTextarea') && !ctx.is_send_press,
         callback: async(evt)=>{
             const skipConfirmKey = 'RegenerateWithCtrlEnter';
-            const skipConfirm = accountStorage.getItem(skipConfirmKey) === 'true';
+            const skipConfirm = ctx.accountStorage.getItem(skipConfirmKey) === 'true';
             function doRegenerate() {
                 console.debug('Regenerating with Ctrl+Enter');
                 $('#option_regenerate').trigger('click');
@@ -112,7 +96,7 @@ const init = async()=>{
                 doRegenerate();
             } else {
                 let regenerateWithCtrlEnter = false;
-                const result = await Popup.show.confirm('Regenerate Message', 'Are you sure you want to regenerate the latest message?', {
+                const result = await ctx.Popup.show.confirm('Regenerate Message', 'Are you sure you want to regenerate the latest message?', {
                     customInputs: [{ id: 'regenerateWithCtrlEnter', label: 'Don\'t ask again' }],
                     onClose: (popup) => {
                         regenerateWithCtrlEnter = popup.inputResults.get('regenerateWithCtrlEnter') ?? false;
@@ -122,7 +106,7 @@ const init = async()=>{
                     return;
                 }
 
-                accountStorage.setItem(skipConfirmKey, String(regenerateWithCtrlEnter));
+                ctx.accountStorage.setItem(skipConfirmKey, String(regenerateWithCtrlEnter));
                 doRegenerate();
             }
         },
@@ -138,7 +122,7 @@ const init = async()=>{
     document.body.addEventListener('keydown', async(evt)=>handleShortcut(evt));
     document.body.addEventListener('keyup', async(evt)=>handleKeyup(evt));
 
-    SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'keyboard',
+    ctx.SlashCommandParser.addCommandObject(ctx.SlashCommand.fromProps({ name: 'keyboard',
         callback: async(args, value)=>{
             const dom = document.createElement('div'); {
                 dom.classList.add('stkc--settings');
@@ -154,7 +138,7 @@ const init = async()=>{
                     list.classList.add('stkc--list');
                     $(list).sortable({
                         handle: '.stkc--dragHandle',
-                        delay: getSortableDelay(),
+                        delay: ctx.getSortableDelay(),
                         stop: ()=>{
                             const items = [...list.children];
                             KeyCombo.list.sort((a, b)=>items.indexOf(a.dom.root) - items.indexOf(b.dom.root));
@@ -183,7 +167,7 @@ const init = async()=>{
                     dom.append(actions);
                 }
             }
-            const dlg = new Popup(dom, POPUP_TYPE.TEXT, null, {
+            const dlg = new ctx.Popup(dom, ctx.POPUP_TYPE.TEXT, null, {
                 wider: true,
                 allowVerticalScrolling: true,
             });
@@ -193,3 +177,7 @@ const init = async()=>{
     }));
 };
 init();
+
+globalThis.Keyboard = {
+    Callback
+};
